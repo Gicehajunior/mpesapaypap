@@ -91,7 +91,7 @@ class SimplePay
 		curl_close($this->curl);
 
 		if ($this->access_token == null) {
-			echo "invalid token";
+			return "invalid token";
 		} else {
 			return $this->access_token;
 		}
@@ -176,7 +176,7 @@ class SimplePay
 		header("Content-Type: application/json");
 		$this->mpesaResponse = file_get_contents('php://input');
 
-		echo $this->mpesaResponse;
+		return $this->mpesaResponse;
 	}
 
 	public function check_transaction_status()
@@ -215,8 +215,7 @@ class SimplePay
 	public function pay()
 	{
 		if ($this->PhoneNumber == null) {
-			echo "Null Recipient!";
-			return;
+			return "Null Recipient!"; 
 		} else {
 			$this->curl_response = $this->stk_push_request();
 			// print_r($this->curl_response);
@@ -233,13 +232,13 @@ class SimplePay
 					// echo $payment_response_object->ResponseDescription;
 					sleep(40);
 					if (isset($payment_response_object->CheckoutRequestID)) {
-						echo $this->check_transaction_status();
+						return $this->check_transaction_status();
 					} else {
-						echo "safaricom mpesa gateway server error!";
+						return "safaricom mpesa gateway server error!";
 					}
 				}
 			} else {
-				echo "safaricom mpesa gateway server error!";
+				return "safaricom mpesa gateway server error!";
 			}
 		}
 	}

@@ -1,6 +1,6 @@
 <?php
 
-class SimplePay
+class MpesaPayPap
 {
 	public $server_protocal;
 	public $payment; 

@@ -55,11 +55,15 @@ class SimplePay
 		$this->PhoneNumber = $PhoneNumber;
 		$this->Amount =  $Amount;
 
-		if ($_SERVER['HTTPS'] == 'on') {
-			$this->server_protocal = "https://";
-		}
+		if (isset($_SERVER['HTTPS'])) {
+			if ($_SERVER['HTTPS'] == 'on') {
+				$this->server_protocal = "https://";
+			} else {
+				$this->server_protocal = "http://";
+			}
+		} 
 		else {
-			$this->server_protocal = "http://";
+			$this->server_protocal = "https://";
 		}
 
 		$this->CallBackURL = $this->server_protocal . $_SERVER['SERVER_NAME'] . DIRECTORY_SEPARATOR . "payment_callback_response";

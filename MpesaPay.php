@@ -42,7 +42,8 @@ class MpesaPay
 
 	public function __construct()
 	{
-		$this->payment = null; 
+		$this->payment = null;
+		$this->Timestamp = date('Ymdhis');
 
 		if (isset($_SERVER['HTTPS'])) {
 			if ($_SERVER['HTTPS'] == 'on') {
@@ -172,8 +173,12 @@ class MpesaPay
 		return $this->mpesaResponse;
 	}
 
-	public function lipa_bill_online_transaction_status_check()
+	public function lipa_bill_online_transaction_status_check($BusinessShortCode=null, $PassKey=null, $CheckoutRequestID=null)
 	{
+		$this->BusinessShortCode = isset($this->BusinessShortCode) ? $this->BusinessShortCode : $BusinessShortCode;
+		$this->PassKey = isset($this->PassKey) ? $this->PassKey : $PassKey;
+		$this->CheckoutRequestID = isset($this->CheckoutRequestID) ? $this->CheckoutRequestID : $CheckoutRequestID;
+
 		$this->curl = curl_init();
 		$this->stkPush_transaction_status_Request_url = 'https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query';
 		curl_setopt($this->curl, CURLOPT_URL, $this->stkPush_transaction_status_Request_url);
@@ -205,13 +210,12 @@ class MpesaPay
 	 *          3) we confirm the response,@pay
 	 *          4) finally, we pay and get the response from safaricom MPESA.@payment_confirmation()
 	 *******/
-	public function lipa_bill_online($consumer_key, $consumer_secret, $BusinessShortCode, $PassKey, $Timestamp, $PartyA, $PartyB, $PhoneNumber, $ProductName=null, $Amount)
+	public function lipa_bill_online($consumer_key, $consumer_secret, $BusinessShortCode, $PassKey, $PartyA, $PartyB, $PhoneNumber, $ProductName=null, $Amount)
 	{
 		$this->consumer_key = $consumer_key;
 		$this->consumer_secret = $consumer_secret;
 		$this->BusinessShortCode = $BusinessShortCode;
-		$this->PassKey = $PassKey;
-		$this->Timestamp = $Timestamp;
+		$this->PassKey = $PassKey; 
 		$this->ProductName = $ProductName; 
 		$this->PartyA = $PartyA;
 		$this->PartyB = $PartyB;
@@ -236,19 +240,12 @@ class MpesaPay
 					// echo $payment_response_object->ResponseDescription;
 					sleep(30);
 					if (isset($payment_response_object->CheckoutRequestID)) {
-						$transaction_status = json_decode($this->lipa_bill_online_transaction_status_check());  
-
-						if (isset($transaction_status->errorMessage)) {
-							if ($transaction_status->errorMessage == "The transaction is being processed") {
-								sleep(60);
-								$transaction_status = $pay->lipa_bill_online_transaction_status_check();
-
-								echo $transaction_status;
-							} else {
-								echo $transaction_status;
-							}
+						$transaction_status = json_decode($this->lipa_bill_online_transaction_status_check($BusinessShortCode=null, $PassKey=null, $Timestamp=null, $CheckoutRequestID=null));   
+						
+						if (isset($transaction_status->errorMessage)) { 
+							return array('error' => $transaction_status->errorMessage, 'CheckoutRequestId' => $this->CheckoutRequestID); 
 						} else {
-							echo $transaction_status;
+							return array('error' => $transaction_status->errorMessage, 'CheckoutRequestId' => $this->CheckoutRequestID);
 						}
 					} else {
 						return "safaricom mpesa gateway server error!";

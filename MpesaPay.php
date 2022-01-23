@@ -234,12 +234,15 @@ class MpesaPay
 					// echo $payment_response_object->CheckoutRequestID;
 					// echo $payment_response_object->ResponseCode;
 					// echo $payment_response_object->ResponseDescription;
-					sleep(40);
+					sleep(30);
 					if (isset($payment_response_object->CheckoutRequestID)) {
 						return $this->lipa_bill_online_transaction_status_check();
 					} else {
 						return "safaricom mpesa gateway server error!";
 					}
+				}
+				else {
+					return "transaction failed!";
 				}
 			} else {
 				return "safaricom mpesa gateway server error!";

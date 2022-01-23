@@ -172,7 +172,7 @@ class MpesaPay
 		return $this->mpesaResponse;
 	}
 
-	public function lipa_bill_online_transaction_status_check()
+	public function lipa_bill_online_transaction_status_check($BusinessShortCode = null, $PassKey = null, $Timestamp = null, $CheckoutRequestID = null)
 	{
 		$this->curl = curl_init();
 		$this->stkPush_transaction_status_Request_url = 'https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query';
@@ -180,10 +180,10 @@ class MpesaPay
 		curl_setopt($this->curl, CURLOPT_HTTPHEADER, array('Content-Type:application/json', 'Authorization:Bearer ' . $this->access_token)); //setting custom header
 
 		$data = array(
-			'BusinessShortCode' => $this->BusinessShortCode,
-			'Password' => base64_encode($this->BusinessShortCode . $this->PassKey . $this->Timestamp),
-			'Timestamp' => $this->Timestamp,
-			'CheckoutRequestID' => $this->CheckoutRequestID
+			'BusinessShortCode' => isset($this->BusinessShortCode) ? $this->BusinessShortCode : $BusinessShortCode,
+			'Password' => base64_encode(isset($this->BusinessShortCode) ? $this->BusinessShortCode : $BusinessShortCode . isset($this->PassKey) ? $this->PassKey : $PassKey . isset($this->Timestamp) ? $this->Timestamp : $Timestamp),
+			'Timestamp' => isset($this->Timestamp) ? $this->Timestamp : $Timestamp,
+			'CheckoutRequestID' => isset($this->CheckoutRequestID) ? $this->CheckoutRequestID : $CheckoutRequestID
 		);
 
 		$encoded_data = json_encode($data);

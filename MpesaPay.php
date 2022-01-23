@@ -245,7 +245,7 @@ class MpesaPay
 						if (isset($transaction_status->errorMessage)) { 
 							return array('error' => $transaction_status->errorMessage, 'CheckoutRequestId' => $this->CheckoutRequestID); 
 						} else {
-							return array('error' => $transaction_status->errorMessage, 'CheckoutRequestId' => $this->CheckoutRequestID);
+							return array('message' => $transaction_status->ResponseDescription, 'CheckoutRequestId' => $this->CheckoutRequestID);
 						}
 					} else {
 						return "safaricom mpesa gateway server error!";

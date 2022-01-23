@@ -243,9 +243,17 @@ class MpesaPay
 						$transaction_status = json_decode($this->lipa_bill_online_transaction_status_check($BusinessShortCode=null, $PassKey=null, $Timestamp=null, $CheckoutRequestID=null));   
 						
 						if (isset($transaction_status->errorMessage)) { 
-							return array('error' => $transaction_status->errorMessage, 'CheckoutRequestId' => $this->CheckoutRequestID); 
+							return array(
+								'error' => $transaction_status->errorMessage, 
+								'CheckoutRequestId' => $this->CheckoutRequestID
+							); 
 						} else {
-							return array('message' => $transaction_status->ResponseDescription, 'CheckoutRequestId' => $this->CheckoutRequestID);
+							return array(
+								'message' => $transaction_status->ResultDesc, 
+								'CheckoutRequestId' => $this->CheckoutRequestID, 
+								'MerchantRequestID' => $transaction_status->MerchantRequestID, 
+								"ResultCode" => $transaction_status->ResultCode
+							);
 						}
 					} else {
 						return "safaricom mpesa gateway server error!";

@@ -172,7 +172,7 @@ class MpesaPay
 		return $this->mpesaResponse;
 	}
 
-	public function lipa_bill_online_transaction_status_check($BusinessShortCode = null, $PassKey = null, $Timestamp = null, $CheckoutRequestID = null)
+	public function lipa_bill_online_transaction_status_check()
 	{
 		$this->curl = curl_init();
 		$this->stkPush_transaction_status_Request_url = 'https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query';
@@ -180,10 +180,10 @@ class MpesaPay
 		curl_setopt($this->curl, CURLOPT_HTTPHEADER, array('Content-Type:application/json', 'Authorization:Bearer ' . $this->access_token)); //setting custom header
 
 		$data = array(
-			'BusinessShortCode' => isset($this->BusinessShortCode) ? $this->BusinessShortCode : $BusinessShortCode,
-			'Password' => base64_encode(isset($this->BusinessShortCode) ? $this->BusinessShortCode : $BusinessShortCode . isset($this->PassKey) ? $this->PassKey : $PassKey . isset($this->Timestamp) ? $this->Timestamp : $Timestamp),
-			'Timestamp' => isset($this->Timestamp) ? $this->Timestamp : $Timestamp,
-			'CheckoutRequestID' => isset($this->CheckoutRequestID) ? $this->CheckoutRequestID : $CheckoutRequestID
+			'BusinessShortCode' => $this->BusinessShortCode,
+			'Password' => base64_encode($this->BusinessShortCode . $this->PassKey . $this->Timestamp),
+			'Timestamp' => $this->Timestamp,
+			'CheckoutRequestID' => $this->CheckoutRequestID
 		);
 
 		$encoded_data = json_encode($data);
@@ -236,7 +236,20 @@ class MpesaPay
 					// echo $payment_response_object->ResponseDescription;
 					sleep(30);
 					if (isset($payment_response_object->CheckoutRequestID)) {
-						return $this->lipa_bill_online_transaction_status_check();
+						$transaction_status = json_decode($this->lipa_bill_online_transaction_status_check());  
+
+						if (isset($transaction_status->errorMessage)) {
+							if ($transaction_status->errorMessage == "The transaction is being processed") {
+								sleep(60);
+								$transaction_status = $pay->lipa_bill_online_transaction_status_check();
+
+								echo $transaction_status;
+							} else {
+								echo $transaction_status;
+							}
+						} else {
+							echo $transaction_status;
+						}
 					} else {
 						return "safaricom mpesa gateway server error!";
 					}

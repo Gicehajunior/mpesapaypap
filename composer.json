@@ -2,7 +2,7 @@
    "name": "mpesapaypap/mpesapaypap",
    "description": "A simple mpesa daraja api helper in PHP",
    "keywords": ["mpesa", "mpesa-payment", "daraja-api"],
-   "homepage": "https://github.com/Gicehajunior/mpesapaypap",
+   "homepage": "https://github.com/Gicehajunior/mpesapaypap/tree/main",
    "license": "MIT",
    "authors": [
       {

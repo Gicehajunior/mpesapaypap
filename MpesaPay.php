@@ -70,7 +70,7 @@ class MpesaPay
 	{
 		$this->headers = ['Content-Type:application/json; charset=utf8'];
 
-		$this->access_token_url = 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials';
+		$this->access_token_url = 'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials';
 
 		$this->curl = curl_init($this->access_token_url);
 		curl_setopt($this->curl, CURLOPT_HTTPHEADER, $this->headers);
@@ -97,7 +97,7 @@ class MpesaPay
 	 *****/
 	public function register_callback_url($CallBackURL)
 	{
-		$this->register_url = 'https://sandbox.safaricom.co.ke/mpesa/c2b/v1/registerurl'; // check the mpesa_accesstoken.php file for this. No need to writing a new file here, just combine the code as in the tutorial.
+		$this->register_url = 'https://api.safaricom.co.ke/mpesa/c2b/v1/registerurl'; // check the mpesa_accesstoken.php file for this. No need to writing a new file here, just combine the code as in the tutorial.
 		$this->ResponseType = 'Cancelled';
 		$this->CallBackURL = $CallBackURL;
 
@@ -132,7 +132,7 @@ class MpesaPay
 		$this->access_token = $this->generate_access_token();
 
 		$this->curl = curl_init();
-		$this->stkPush_Request_url = 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest';
+		$this->stkPush_Request_url = 'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest';
 		curl_setopt($this->curl, CURLOPT_URL, $this->stkPush_Request_url);
 		curl_setopt($this->curl, CURLOPT_HTTPHEADER, array('Content-Type:application/json', 'Authorization:Bearer ' . $this->access_token)); //setting custom header
 
@@ -180,7 +180,7 @@ class MpesaPay
 		$this->CheckoutRequestID = isset($this->CheckoutRequestID) ? $this->CheckoutRequestID : $CheckoutRequestID;
 
 		$this->curl = curl_init();
-		$this->stkPush_transaction_status_Request_url = 'https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query';
+		$this->stkPush_transaction_status_Request_url = 'https://api.safaricom.co.ke/mpesa/stkpushquery/v1/query';
 		curl_setopt($this->curl, CURLOPT_URL, $this->stkPush_transaction_status_Request_url);
 		curl_setopt($this->curl, CURLOPT_HTTPHEADER, array('Content-Type:application/json', 'Authorization:Bearer ' . $this->access_token)); //setting custom header
 
@@ -232,12 +232,8 @@ class MpesaPay
 
 			if (isset($payment_response_object->ResponseCode)) {
 				if ($payment_response_object->ResponseCode == 0) {
-					$this->CheckoutRequestID = isset($payment_response_object->CheckoutRequestID) ? $payment_response_object->CheckoutRequestID : null;
-					// echo $payment_response_object->ResponseCode;
-					// echo $payment_response_object->MerchantRequestID;
-					// echo $payment_response_object->CheckoutRequestID;
-					// echo $payment_response_object->ResponseCode;
-					// echo $payment_response_object->ResponseDescription;
+					$this->CheckoutRequestID = isset($payment_response_object->CheckoutRequestID) ? $payment_response_object->CheckoutRequestID : null; 
+
 					sleep(30);
 					if (isset($payment_response_object->CheckoutRequestID)) {
 						$transaction_status = json_decode($this->lipa_bill_online_transaction_status_check($BusinessShortCode=null, $PassKey=null, $Timestamp=null, $CheckoutRequestID=null));   
@@ -256,14 +252,23 @@ class MpesaPay
 							);
 						}
 					} else {
-						return "safaricom mpesa gateway server error!";
+						return array(
+							'error' => $transaction_status->errorMessage,
+							'CheckoutRequestId' => $this->CheckoutRequestID
+						);
 					}
 				}
 				else {
-					return "transaction failed!";
+					return array(
+						'error' => $transaction_status->errorMessage,
+						'CheckoutRequestId' => $this->CheckoutRequestID
+					); 
 				}
 			} else {
-				return "safaricom mpesa gateway server error!";
+				return array(
+					'error' => $transaction_status->errorMessage,
+					'CheckoutRequestId' => $this->CheckoutRequestID
+				); 
 			}
 		}
 	}

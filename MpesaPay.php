@@ -2,6 +2,8 @@
 
 class MpesaPay
 {
+	public $environment;
+	public $mpesa_gateway;
 	public $server_protocal;
 	public $payment;
 
@@ -41,10 +43,31 @@ class MpesaPay
 	private $stkPush_transaction_status_Request_url;
 	private $CheckoutRequestID;
 
-	public function __construct()
+	public function __construct($environment, $consumer_key, $consumer_secret, $PassKey)
 	{
+
+		$this->environment = $environment;
+		$this->consumer_key = $consumer_key;
+		$this->consumer_secret = $consumer_secret;
+		$this->PassKey = $PassKey;
+
 		$this->payment = null;
 		$this->Timestamp = date('Ymdhis');
+
+		if (isset($this->environment)) {
+			if ($this->environment == 'sandbox') {
+				$this->mpesa_gateway = 'sandbox';
+			}
+			else if ($this->environment == 'live') {
+				$this->mpesa_gateway = 'api';
+			}
+			else {
+				$this->mpesa_gateway = 'sandbox';
+			}
+		}
+		else {
+			$this->mpesa_gateway = 'sandbox';
+		}
 
 		if (isset($_SERVER['HTTPS'])) {
 			if ($_SERVER['HTTPS'] == 'on') {
@@ -69,7 +92,7 @@ class MpesaPay
 	{
 		$this->headers = ['Content-Type:application/json; charset=utf8'];
 
-		$this->access_token_url = 'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials';
+		$this->access_token_url = 'https://' . $this->mpesa_gateway . '.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials';
 
 		$this->curl = curl_init($this->access_token_url);
 		curl_setopt($this->curl, CURLOPT_HTTPHEADER, $this->headers);
@@ -99,7 +122,7 @@ class MpesaPay
 	 *****/
 	public function register_callback_url($CallBackURL, $ValidationURL, $ResponseType = 'Cancelled')
 	{
-		$this->register_url = 'https://api.safaricom.co.ke/mpesa/c2b/v1/registerurl'; // check the mpesa_accesstoken.php file for this. No need to writing a new file here, just combine the code as in the tutorial.
+		$this->register_url = 'https://' . $this->mpesa_gateway . '.safaricom.co.ke/mpesa/c2b/v1/registerurl'; // check the mpesa_accesstoken.php file for this. No need to writing a new file here, just combine the code as in the tutorial.
 		$this->CallBackURL = (isset($this->CallBackURL) == null) ? $CallBackURL : $this->CallBackURL;
 		$this->ValidationURL = (isset($this->ValidationURL) == null) ? $ValidationURL : $this->ValidationURL;
 		$this->BusinessShortCode = (isset($this->BusinessShortCode) !== null) ? $this->BillRefNumber : $BillRefNumber;
@@ -145,7 +168,7 @@ class MpesaPay
 		$this->access_token = $this->generate_access_token();
 
 		$this->curl = curl_init();
-		$this->stkPush_Request_url = 'https://api.safaricom.co.ke/mpesa/c2b/v1/simulate';
+		$this->stkPush_Request_url = 'https://' . $this->mpesa_gateway . '.safaricom.co.ke/mpesa/c2b/v1/simulate';
 		curl_setopt($this->curl, CURLOPT_URL, $this->stkPush_Request_url);
 		curl_setopt($this->curl, CURLOPT_HTTPHEADER, array('Content-Type:application/json', 'Authorization:Bearer ' . $this->access_token)); //setting custom header
 
@@ -179,7 +202,7 @@ class MpesaPay
 		$this->access_token = $this->generate_access_token();
 
 		$this->curl = curl_init();
-		$this->stkPush_Request_url = 'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest';
+		$this->stkPush_Request_url = 'https://' . $this->mpesa_gateway . '.safaricom.co.ke/mpesa/stkpush/v1/processrequest';
 		curl_setopt($this->curl, CURLOPT_URL, $this->stkPush_Request_url);
 		curl_setopt($this->curl, CURLOPT_HTTPHEADER, array('Content-Type:application/json', 'Authorization:Bearer ' . $this->access_token)); //setting custom header
 
@@ -226,14 +249,13 @@ class MpesaPay
 	 * We check the status of the lipa bill online transaction
 	 * We therefore return the response.
 	 */
-	public function lipa_bill_online_transaction_status_check($BusinessShortCode = null, $PassKey = null, $CheckoutRequestID = null)
+	public function lipa_bill_online_transaction_status_check($BusinessShortCode = null, $CheckoutRequestID = null)
 	{
 		$this->BusinessShortCode = isset($this->BusinessShortCode) ? $this->BusinessShortCode : $BusinessShortCode;
-		$this->PassKey = isset($this->PassKey) ? $this->PassKey : $PassKey;
 		$this->CheckoutRequestID = isset($this->CheckoutRequestID) ? $this->CheckoutRequestID : $CheckoutRequestID;
 
 		$this->curl = curl_init();
-		$this->stkPush_transaction_status_Request_url = 'https://api.safaricom.co.ke/mpesa/stkpushquery/v1/query';
+		$this->stkPush_transaction_status_Request_url = 'https://' . $this->mpesa_gateway . '.safaricom.co.ke/mpesa/stkpushquery/v1/query';
 		curl_setopt($this->curl, CURLOPT_URL, $this->stkPush_transaction_status_Request_url);
 		curl_setopt($this->curl, CURLOPT_HTTPHEADER, array('Content-Type:application/json', 'Authorization:Bearer ' . $this->access_token)); //setting custom header
 
@@ -264,12 +286,9 @@ class MpesaPay
 	 * 
 	 * 			By default, ShortCodeType is Paybill.
 	 *******/
-	public function lipa_bill_online($consumer_key, $consumer_secret, $BusinessShortCode, $PassKey, $PartyA, $PartyB, $PhoneNumber, $ProductName = null, $Amount, $ShortCodeType = "paybill", $transaction_description = null)
+	public function lipa_bill_online($BusinessShortCode, $PartyA, $PartyB, $PhoneNumber, $ProductName = null, $Amount, $ShortCodeType = "paybill", $transaction_description = null)
 	{
-		$this->consumer_key = $consumer_key;
-		$this->consumer_secret = $consumer_secret;
 		$this->BusinessShortCode = $BusinessShortCode;
-		$this->PassKey = $PassKey;
 		$this->ProductName = $ProductName;
 		$this->PartyA = $PartyA;
 		$this->PartyB = $PartyB;
@@ -291,7 +310,7 @@ class MpesaPay
 
 					sleep(30);
 					if (isset($payment_response_object->CheckoutRequestID)) {
-						$transaction_status = json_decode($this->lipa_bill_online_transaction_status_check($BusinessShortCode = null, $PassKey = null, $Timestamp = null, $CheckoutRequestID = null));
+						$transaction_status = json_decode($this->lipa_bill_online_transaction_status_check($BusinessShortCode = null, $Timestamp = null, $CheckoutRequestID = null));
 
 						if (isset($transaction_status->errorMessage)) {
 							return array(

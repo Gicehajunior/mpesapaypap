@@ -8,7 +8,7 @@ class MpesaPay
 	public $payment;
 
 	private $mpesaResponse;
-	private $user_transaction_id;
+	private $transactionId;
 	private $port;
 	private $consumer_key;
 	private $consumer_secret;
@@ -16,7 +16,7 @@ class MpesaPay
 	private $access_token;
 	private $register_url;
 	private $curl_response;
-	private $data;
+	private $data; 
 	private $ResponseType;
 	private $stkPush_Request_url;
 	private $curl;
@@ -35,6 +35,15 @@ class MpesaPay
 	private $AccountReference;
 	private $BillRefNumber;
 	private $TransactionDesc;
+	private $CommandID;
+	private $IdentifierType;
+	private $Remarks;
+	private $Initiator;
+	private $SecurityCredential;
+	private $QueueTimeOutURL;
+	private $ResultURL;
+	private $Occasion;
+
 	private $residentialAddress;
 	private $residentialCity;
 	private $residentialState;
@@ -78,6 +87,8 @@ class MpesaPay
 		} else {
 			$this->server_protocal = "https://";
 		} 
+
+		$this->transactionId = substr(md5(uniqid()), -5);
 	}
 
 	/**********************************
@@ -188,11 +199,94 @@ class MpesaPay
 
 	/*******
 	 * STKPushRequest.
-	 * This function initiates stk push on the customer's device.
+	 * 
+	 * This function initiates stk push on the customer's device for 
+	 * transaction status checks.
+	 * 
+	 *  Parameters Description;
+	 * -------------------------------------------------------------
+	 * CommandID = Takes only 'TransactionStatusQuery' command id.
+	 * 
+	 * IndentifierType = 1 for MSISDN, 2 for Till Number, 4 for Organization short code.
+	 * 
+	 * PartyA = Shortcode (6 digits) MSISDN (12 Digits).
+	 * 
+	 * Remarks = Comments that are sent along with the transaction	- upto a hundred characters.
+	 * 
+	 * Initiator = This is the credential/username used to authenticate the transaction request.
+	 * 
+	 * SecurityCredential = Encrypted password for the initiator to authenticate the transaction request.
+	 * 
+	 * QueueTimeOutURL = The path that stores information of time out transaction - https://ip or domain:port/path.
+	 * 
+	 * ResultURL = The path that stores information of transaction - https://ip or domain:port/path.
+	 * 
+	 * transactionId = Unique identifier to identify a transaction on M-Pesa.
+	 * 
+	 * Occasion = sequence of characters up to 100. Optional parameter.
+	 * 
+	 * @return curl_response
+	 */
+	public function check_transaction_status(
+		$CommandID, 
+		$PartyA, 
+		$IdentifierType, 
+		$Remarks, 
+		$Initiator,  
+		$QueueTimeOutURL, 
+		$ResultURL, 
+		$transactionId, 
+		$Occasion = null,
+		$SecurityCredential = null
+	) { 
+		$this->transactionId = $transactionId ? $transactionId : $this->transactionId;
+		$this->access_token = $this->generate_access_token();
+
+		$this->curl = curl_init();
+		$this->stkPush_Request_url = 'https://' . $this->mpesa_gateway . '.safaricom.co.ke/mpesa/transactionstatus/v1/query';
+		
+		curl_setopt($this->curl, CURLOPT_URL, $this->stkPush_Request_url);
+		curl_setopt($this->curl, CURLOPT_HTTPHEADER, array('Content-Type:application/json', 'Authorization:Bearer ' . $this->access_token)); //setting custom header
+
+		$this->SecurityCredential = $SecurityCredential 
+			? $SecurityCredential 
+			: base64_encode($this->BusinessShortCode . $this->PassKey . $this->Timestamp);
+		
+		$this->QueueTimeOutURL = $this->server_protocal . $_SERVER['SERVER_NAME'] . DIRECTORY_SEPARATOR . $QueueTimeOutURL;
+		$this->ResultURL = $this->server_protocal . $_SERVER['SERVER_NAME'] . DIRECTORY_SEPARATOR . $ResultURL;
+		$this->AccountReference = $this->transactionId;
+		
+		$data = array(
+			'CommandID' => $this->CommandID,
+			'PartyA' => $this->PartyA,
+			'IdentifierType' => $this->IdentifierType, // 1 – MSISDN 2 – Till Number 4 – Organization short code
+			'Remarks' => $this->Remarks,
+			'Initiator' => $this->Initiator,
+			'SecurityCredential' => $this->SecurityCredential, 
+			'QueueTimeOutURL' => $this->QueueTimeOutURL, 
+			'ResultURL' => $this->ResultURL,
+			'TransactionID' =>  $this->AccountReference,
+			'Occasion' =>  null
+		);
+
+		$encoded_data = json_encode($data);
+
+		curl_setopt($this->curl, CURLOPT_RETURNTRANSFER, true); 
+		curl_setopt($this->curl, CURLOPT_CUSTOMREQUEST, 'GET');
+		curl_setopt($this->curl, CURLOPT_POSTFIELDS, $encoded_data);
+
+		$this->curl_response = curl_exec($this->curl);
+
+		return $this->curl_response;
+	}
+
+	/*******
+	 * STKPushRequest.
+	 * This function initiates stk push on the customer's device for
+	 * lipa bill online.
 	 */
 	public function lipa_bill_online_stk_push_request()
-	{
-		$this->user_transaction_id = md5(uniqid());
+	{ 
 		$this->access_token = $this->generate_access_token();
 
 		$this->curl = curl_init();
@@ -200,7 +294,8 @@ class MpesaPay
 		curl_setopt($this->curl, CURLOPT_URL, $this->stkPush_Request_url);
 		curl_setopt($this->curl, CURLOPT_HTTPHEADER, array('Content-Type:application/json', 'Authorization:Bearer ' . $this->access_token)); //setting custom header
 
-		$this->AccountReference = "Online Payment Ref. Number: " . substr($this->user_transaction_id, -5);
+		$this->AccountReference = $this->transactionId;
+
 		$data = array(
 			'BusinessShortCode' => $this->BusinessShortCode,
 			'Password' => base64_encode($this->BusinessShortCode . $this->PassKey . $this->Timestamp),
@@ -267,7 +362,7 @@ class MpesaPay
 	 * 
 	 * 			By default, ShortCodeType is Paybill.
 	 *******/
-	public function lipa_bill_online($BusinessShortCode, $PartyA, $PartyB, $PhoneNumber, $ProductName = null, $Amount, $ShortCodeType = "paybill", $transaction_description = null, $CallBackURL, $ValidationURL)
+	public function lipa_bill_online($BusinessShortCode, $PartyA, $PartyB, $PhoneNumber, $ProductName = null, $Amount, $transactionId, $ShortCodeType = "paybill", $transaction_description = null, $CallBackURL, $ValidationURL)
 	{
 		$this->CallBackURL = $this->server_protocal . $_SERVER['SERVER_NAME'] . DIRECTORY_SEPARATOR . $CallBackURL;
 		$this->validationUrl = $ValidationURL;
@@ -279,6 +374,7 @@ class MpesaPay
 		$this->Amount =  $Amount;
 		$this->TransactionType = ($ShortCodeType == "tillNumber") ? "CustomerBuyGoodsOnline" : "CustomerPayBillOnline";
 		$this->TransactionDesc = ($transaction_description) ? $transaction_description : "Lipa Bill Online. Request Initiated by the Merchant";
+		$this->transactionId = $transactionId ? $transactionId : $this->transactionId;
 
 		if ($this->PhoneNumber == null) {
 			return "Null Recipient!";

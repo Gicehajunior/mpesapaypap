@@ -425,7 +425,7 @@ class MpesaPay
 			// Webhook-based response handling is recommended instead of sleep()
 			sleep($processing_time_in_seconds);
 
-			if (isset($this->CheckoutRequestID)) {
+			if (empty($this->CheckoutRequestID)) {
 				return [
 					'error' => 'STK Push error!',
 					"ResultCode" => 1037
@@ -453,6 +453,7 @@ class MpesaPay
 				'message' => $status_response->ResultDesc ?? 'Transaction Processed',
 				'CheckoutRequestId' => $this->CheckoutRequestID,
 				'MerchantRequestID' => $status_response->MerchantRequestID ?? null,
+				'MpesaReceiptNumber' => $status_response->MpesaReceiptNumber ?? null,
 				"ResultCode" => $status_response->ResultCode ?? null
 			];
 		} catch (\Throwable $th) {
@@ -462,5 +463,4 @@ class MpesaPay
 			];
 		}
 	}
-
 }
